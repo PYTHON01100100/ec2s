@@ -1,0 +1,20 @@
+# Example ec2s config. Copy to ./ec2s.yaml or ~/.config/ec2s/config.yaml
+# (or point --config / $EC2S_CONFIG at a copy elsewhere).
+#
+# Each account is an AWS profile (as defined in ~/.aws/config /
+# ~/.aws/credentials — static credentials, assume-role, credential_process,
+# and AWS SSO profiles are all supported, since ec2s uses the AWS SDK's
+# standard credential chain) paired with one or more regions. ec2s fetches
+# EC2 instances from every account/region pair concurrently and aggregates
+# them into a single table.
+
+accounts:
+  - name: prod
+    profile: prod-profile
+    regions:
+      - us-east-1
+      - eu-west-1
+
+  - name: staging
+    profile: staging-profile
+    region: us-east-1 # shorthand for regions: [us-east-1]

@@ -1,0 +1,17 @@
+# Build artifacts
+/dist/
+/ec2s
+/ec2s.exe
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local, untracked personal config
+ec2s.local.yaml
