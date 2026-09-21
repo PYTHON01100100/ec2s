@@ -22,6 +22,7 @@ type Instance struct {
 	Region           string
 	AvailabilityZone string
 	Type             string
+	Platform         string
 	State            string
 	PublicIP         string
 	PrivateIP        string
@@ -40,6 +41,7 @@ func fromSDK(raw ec2types.Instance, env config.Environment) Instance {
 		Profile:     env.Profile,
 		Region:      env.Region,
 		Type:        string(raw.InstanceType),
+		Platform:    strOrEmpty(raw.PlatformDetails),
 		PublicIP:    strOrEmpty(raw.PublicIpAddress),
 		PrivateIP:   strOrEmpty(raw.PrivateIpAddress),
 		VPCId:       strOrEmpty(raw.VpcId),

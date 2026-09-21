@@ -10,7 +10,7 @@ import (
 	"github.com/PYTHON01100100/ec2s/internal/awsclient"
 )
 
-var tableColumns = []string{"NAME", "INSTANCE ID", "STATE", "TYPE", "ACCOUNT", "REGION", "ZONE", "VPC ID", "SUBNET ID", "PUBLIC IP", "PRIVATE IP", "LAUNCH TIME"}
+var tableColumns = []string{"NAME", "INSTANCE ID", "STATE", "TYPE", "OS", "ACCOUNT", "REGION", "ZONE", "VPC ID", "SUBNET ID", "PUBLIC IP", "PRIVATE IP", "LAUNCH TIME"}
 
 const stateColumn = 2
 
@@ -122,6 +122,7 @@ func (t *Table) setRow(row int, inst awsclient.Instance) {
 		inst.ID,
 		inst.State,
 		inst.Type,
+		orDash(inst.Platform),
 		inst.AccountName,
 		inst.Region,
 		orDash(inst.AvailabilityZone),

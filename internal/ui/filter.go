@@ -12,7 +12,7 @@ import (
 // matchesFilter reports whether an instance matches a filter query. A query
 // with no ":" is a case-insensitive substring match against the instance
 // name and ID. A "column:value" query matches that specific field instead
-// (state, account, region, type, zone, vpc, subnet).
+// (state, account, region, type, os, zone, vpc, subnet).
 func matchesFilter(inst awsclient.Instance, query string) bool {
 	query = strings.TrimSpace(query)
 	if query == "" {
@@ -30,6 +30,8 @@ func matchesFilter(inst awsclient.Instance, query string) bool {
 			return strings.Contains(strings.ToLower(inst.Region), value)
 		case "type":
 			return strings.Contains(strings.ToLower(inst.Type), value)
+		case "os":
+			return strings.Contains(strings.ToLower(inst.Platform), value)
 		case "zone":
 			return strings.Contains(strings.ToLower(inst.AvailabilityZone), value)
 		case "vpc":

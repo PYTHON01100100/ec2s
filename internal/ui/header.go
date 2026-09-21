@@ -22,7 +22,7 @@ var headerKeys = []struct{ key, description string }{
 // infoItemRows is the number of fields SetInstance renders in the left
 // column, used by the caller to size the info panel tall enough for both
 // columns.
-const infoItemRows = 12
+const infoItemRows = 13
 
 // Header renders the e1s-style "info" panel: details of the currently
 // selected instance on the left, static keybinding hints on the right. It
@@ -78,6 +78,7 @@ func (h *Header) SetInstance(inst *awsclient.Instance) {
 		{"Instance ID", inst.ID},
 		{"State", inst.State},
 		{"Type", inst.Type},
+		{"OS", orDash(inst.Platform)},
 		{"Account", inst.AccountName},
 		{"Profile", inst.Profile},
 		{"Region", inst.Region},
