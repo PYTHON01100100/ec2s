@@ -29,7 +29,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	if err := app.Run(ctx, *configPath); err != nil {
+	if err := app.Run(ctx, *configPath, version); err != nil {
 		fmt.Fprintln(os.Stderr, "ec2s:", err)
 		os.Exit(1)
 	}

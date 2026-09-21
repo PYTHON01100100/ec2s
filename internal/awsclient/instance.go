@@ -15,18 +15,20 @@ import (
 // Instance is a flattened, UI-friendly view of an EC2 instance, tagged with
 // the ec2s account/environment it was discovered under.
 type Instance struct {
-	ID          string
-	Name        string
-	AccountName string
-	Profile     string
-	Region      string
-	Type        string
-	State       string
-	PublicIP    string
-	PrivateIP   string
-	LaunchTime  time.Time
-	VPCId       string
-	Tags        map[string]string
+	ID               string
+	Name             string
+	AccountName      string
+	Profile          string
+	Region           string
+	AvailabilityZone string
+	Type             string
+	State            string
+	PublicIP         string
+	PrivateIP        string
+	LaunchTime       time.Time
+	VPCId            string
+	SubnetId         string
+	Tags             map[string]string
 }
 
 // fromSDK maps an SDK EC2 instance into our Instance model, tagging it with
@@ -41,6 +43,7 @@ func fromSDK(raw ec2types.Instance, env config.Environment) Instance {
 		PublicIP:    strOrEmpty(raw.PublicIpAddress),
 		PrivateIP:   strOrEmpty(raw.PrivateIpAddress),
 		VPCId:       strOrEmpty(raw.VpcId),
+		SubnetId:    strOrEmpty(raw.SubnetId),
 		Tags:        map[string]string{},
 	}
 
@@ -49,6 +52,9 @@ func fromSDK(raw ec2types.Instance, env config.Environment) Instance {
 	}
 	if raw.LaunchTime != nil {
 		inst.LaunchTime = *raw.LaunchTime
+	}
+	if raw.Placement != nil {
+		inst.AvailabilityZone = strOrEmpty(raw.Placement.AvailabilityZone)
 	}
 
 	for _, tag := range raw.Tags {

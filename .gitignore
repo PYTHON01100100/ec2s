@@ -15,3 +15,7 @@ Thumbs.db
 
 # Local, untracked personal config
 ec2s.local.yaml
+/ec2s.yaml
+
+# Third-party reference code kept locally for design inspiration, not part of this project
+/project ref from e1s/

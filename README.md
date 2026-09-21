@@ -81,7 +81,16 @@ ec2s --config my.yaml     # explicit config file
 | `q` / `Ctrl-C`      | quit                                     |
 
 Filter syntax supports `state:running`, `account:prod`, `region:us-east-1`,
-`type:t3.micro`, or plain substring matching against instance name/ID.
+`type:t3.micro`, `zone:us-east-1a`, `vpc:vpc-…`, `subnet:subnet-…`, or plain
+substring matching against instance name/ID.
+
+### What it shows
+
+The table and the info panel (top of the screen, updates as you move the
+selection) surface the fields that matter most when you're trying to find
+or reach a specific instance: **name**, instance ID, state, type, **account**
+and **region**, **availability zone**, **VPC ID** and **subnet ID**, and
+both the **public (external)** and **private (internal)** IP addresses.
 
 ## Inspiration
 

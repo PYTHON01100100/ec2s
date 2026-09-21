@@ -7,41 +7,81 @@ import (
 	"github.com/rivo/tview"
 )
 
-const keyHints = "<?> help  </> filter  <ctrl-a> accounts  <ctrl-r> refresh  <q> quit"
+const keyHints = "/ filter   ctrl-a accounts   ctrl-r refresh   g/G top/bottom   ? help   q quit"
 
-// Footer renders the status bar: active filter, account scope, key hints,
-// and any per-account warnings from the last fetch.
+// Footer renders the status bar as a row of e1s-style colored chips (scope,
+// active filter, key hints, totals, app version), plus a second line for
+// any per-account warnings from the last fetch.
 type Footer struct {
-	view *tview.TextView
+	view *tview.Flex
+
+	chips    *tview.Flex
+	scope    *tview.TextView
+	filter   *tview.TextView
+	hints    *tview.TextView
+	counts   *tview.TextView
+	app      *tview.TextView
+	warnings *tview.TextView
+
+	appChipWidth int
 }
 
-func newFooter() *Footer {
-	view := tview.NewTextView().
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignLeft)
-	return &Footer{view: view}
-}
-
-// SetStatus updates the footer. accountFilter is "" for "All accounts".
-// warnings lists per-environment errors from the last fetch, if any.
-func (f *Footer) SetStatus(textFilter, accountFilter string, warnings []string) {
-	var b strings.Builder
-
-	scope := "All accounts"
-	if accountFilter != "" {
-		scope = accountFilter
+func newFooter(version string) *Footer {
+	f := &Footer{
+		chips:    tview.NewFlex().SetDirection(tview.FlexColumn),
+		scope:    tview.NewTextView().SetDynamicColors(true),
+		filter:   tview.NewTextView().SetDynamicColors(true),
+		hints:    tview.NewTextView().SetDynamicColors(true).SetText("[green]" + keyHints + "[-]"),
+		counts:   tview.NewTextView().SetDynamicColors(true),
+		app:      tview.NewTextView().SetDynamicColors(true),
+		warnings: tview.NewTextView().SetDynamicColors(true),
 	}
-	fmt.Fprintf(&b, "[::b]Scope:[-:-:-] %s", scope)
+
+	appText := fmt.Sprintf("ec2s:%s", version)
+	f.app.SetText(fmt.Sprintf(footerAppFmt, "ec2s", version))
+	f.appChipWidth = len(appText) + 3
+
+	f.view = tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(f.chips, 1, 0, false).
+		AddItem(f.warnings, 1, 0, false)
+
+	return f
+}
+
+// SetStatus rebuilds the chip row and warnings line from current state.
+// accountFilter is "" for "all accounts". totalInstances/totalAccounts/
+// totalRegions reflect the last full fetch (unfiltered); warnings lists
+// per-environment errors from that fetch, if any.
+func (f *Footer) SetStatus(textFilter, accountFilter string, totalAccounts, totalRegions, totalInstances, failedAccounts int, warnings []string) {
+	scope := accountFilter
+	if scope == "" {
+		scope = "all accounts"
+	}
+	f.scope.SetText(fmt.Sprintf(footerChipActiveFmt, scope))
+
+	f.chips.Clear()
+	f.chips.AddItem(f.scope, len(scope)+3, 0, false)
 
 	if textFilter != "" {
-		fmt.Fprintf(&b, "  [::b]Filter:[-:-:-] %s", tview.Escape(textFilter))
+		filterLabel := "filter: " + tview.Escape(textFilter)
+		f.filter.SetText(fmt.Sprintf(footerChipFmt, filterLabel))
+		f.chips.AddItem(f.filter, len(filterLabel)+3, 0, false)
 	}
 
-	b.WriteString("\n" + keyHints)
+	f.chips.AddItem(f.hints, 0, 1, false)
+
+	countsLabel := fmt.Sprintf("%d accounts · %d regions · %d instances", totalAccounts, totalRegions, totalInstances)
+	if failedAccounts > 0 {
+		countsLabel += fmt.Sprintf(" · %d failed", failedAccounts)
+	}
+	f.counts.SetText(fmt.Sprintf(footerChipFmt, countsLabel))
+	f.chips.AddItem(f.counts, len(countsLabel)+3, 0, false)
+
+	f.chips.AddItem(f.app, f.appChipWidth, 0, false)
 
 	if len(warnings) > 0 {
-		fmt.Fprintf(&b, "\n[orange]%s[-]", strings.Join(warnings, "; "))
+		f.warnings.SetText("💥 [orange]" + strings.Join(warnings, "; ") + "[-]")
+	} else {
+		f.warnings.SetText("")
 	}
-
-	f.view.SetText(b.String())
 }

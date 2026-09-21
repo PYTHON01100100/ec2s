@@ -16,6 +16,11 @@ const (
 	pageHelp     = "help"
 )
 
+// infoPanelHeight is the info panel's fixed height: enough rows for the
+// taller of the two columns (instance fields vs. keybindings), plus the top
+// and bottom border.
+var infoPanelHeight = max(infoItemRows, len(headerKeys)) + 2
+
 // App is the ec2s terminal UI.
 type App struct {
 	tapp  *tview.Application
@@ -31,6 +36,8 @@ type App struct {
 	accountFilter string
 	textFilter    string
 	warnings      []string
+	totalAccounts int
+	totalRegions  int
 
 	// onRefresh is invoked on the UI goroutine when the user presses
 	// Ctrl-R. It must not block — the caller is expected to launch its own
@@ -39,22 +46,26 @@ type App struct {
 }
 
 // New builds the ec2s UI shell. accountNames are the configured account
-// names, used to populate the Ctrl-A account selector.
-func New(accountNames []string, onRefresh func()) *App {
+// names, used to populate the Ctrl-A account selector. version is displayed
+// in the footer's app chip.
+func New(accountNames []string, onRefresh func(), version string) *App {
+	applyTheme()
+
 	a := &App{
 		tapp:         tview.NewApplication(),
 		pages:        tview.NewPages(),
 		header:       newHeader(),
 		table:        newTable(),
-		footer:       newFooter(),
+		footer:       newFooter(version),
 		accountNames: accountNames,
 		onRefresh:    onRefresh,
 	}
+	a.table.SetOnSelect(a.header.SetInstance)
 
 	a.root = tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(a.header.view, 2, 0, false).
+		AddItem(a.header.view, infoPanelHeight, 0, false).
 		AddItem(a.table.view, 0, 1, true).
-		AddItem(a.footer.view, 3, 0, false)
+		AddItem(a.footer.view, 2, 0, false)
 
 	a.pages.AddPage(pageMain, a.root, true, true)
 	a.tapp.SetRoot(a.pages, true).SetFocus(a.table.view)
@@ -77,8 +88,9 @@ func (a *App) SetInstancesAsync(instances []awsclient.Instance, warnings []strin
 	a.tapp.QueueUpdateDraw(func() {
 		a.all = instances
 		a.warnings = warnings
+		a.totalAccounts = totalAccounts
+		a.totalRegions = totalRegions
 		a.applyFilters()
-		a.header.SetSummary(totalAccounts, totalRegions, len(a.all), len(warnings))
 		a.refreshFooter()
 	})
 }
@@ -94,11 +106,15 @@ func (a *App) applyFilters() {
 		}
 		filtered = append(filtered, inst)
 	}
-	a.table.SetInstances(filtered)
+	scope := a.accountFilter
+	if scope == "" {
+		scope = "all accounts"
+	}
+	a.table.SetInstances(filtered, scope)
 }
 
 func (a *App) refreshFooter() {
-	a.footer.SetStatus(a.textFilter, a.accountFilter, a.warnings)
+	a.footer.SetStatus(a.textFilter, a.accountFilter, a.totalAccounts, a.totalRegions, len(a.all), len(a.warnings), a.warnings)
 }
 
 func (a *App) handleKey(event *tcell.EventKey) *tcell.EventKey {

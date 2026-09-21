@@ -16,7 +16,7 @@ import (
 // performs an initial concurrent discovery across every configured
 // account/region, and launches the terminal UI. It blocks until the user
 // quits.
-func Run(ctx context.Context, configPath string) error {
+func Run(ctx context.Context, configPath, version string) error {
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
@@ -35,7 +35,7 @@ func Run(ctx context.Context, configPath string) error {
 		}()
 	}
 
-	uiApp = ui.New(accountNames, refresh)
+	uiApp = ui.New(accountNames, refresh, version)
 	refresh()
 
 	return uiApp.Run()

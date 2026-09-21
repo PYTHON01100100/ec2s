@@ -12,7 +12,7 @@ import (
 // matchesFilter reports whether an instance matches a filter query. A query
 // with no ":" is a case-insensitive substring match against the instance
 // name and ID. A "column:value" query matches that specific field instead
-// (state, account, region, type).
+// (state, account, region, type, zone, vpc, subnet).
 func matchesFilter(inst awsclient.Instance, query string) bool {
 	query = strings.TrimSpace(query)
 	if query == "" {
@@ -20,15 +20,22 @@ func matchesFilter(inst awsclient.Instance, query string) bool {
 	}
 
 	if column, value, ok := strings.Cut(query, ":"); ok {
+		value = strings.ToLower(strings.TrimSpace(value))
 		switch strings.ToLower(strings.TrimSpace(column)) {
 		case "state":
-			return strings.Contains(strings.ToLower(inst.State), strings.ToLower(strings.TrimSpace(value)))
+			return strings.Contains(strings.ToLower(inst.State), value)
 		case "account":
-			return strings.Contains(strings.ToLower(inst.AccountName), strings.ToLower(strings.TrimSpace(value)))
+			return strings.Contains(strings.ToLower(inst.AccountName), value)
 		case "region":
-			return strings.Contains(strings.ToLower(inst.Region), strings.ToLower(strings.TrimSpace(value)))
+			return strings.Contains(strings.ToLower(inst.Region), value)
 		case "type":
-			return strings.Contains(strings.ToLower(inst.Type), strings.ToLower(strings.TrimSpace(value)))
+			return strings.Contains(strings.ToLower(inst.Type), value)
+		case "zone":
+			return strings.Contains(strings.ToLower(inst.AvailabilityZone), value)
+		case "vpc":
+			return strings.Contains(strings.ToLower(inst.VPCId), value)
+		case "subnet":
+			return strings.Contains(strings.ToLower(inst.SubnetId), value)
 		}
 		// Unrecognized column prefix: fall through to a plain substring match
 		// against the whole query so "foo:bar" free text still works.

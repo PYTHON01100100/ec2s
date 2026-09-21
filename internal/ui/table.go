@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/gdamore/tcell/v2"
@@ -9,14 +10,18 @@ import (
 	"github.com/PYTHON01100100/ec2s/internal/awsclient"
 )
 
-var tableColumns = []string{"NAME", "INSTANCE ID", "ACCOUNT", "REGION", "TYPE", "STATE", "PUBLIC IP", "PRIVATE IP", "LAUNCH TIME"}
+var tableColumns = []string{"NAME", "INSTANCE ID", "STATE", "TYPE", "ACCOUNT", "REGION", "ZONE", "VPC ID", "SUBNET ID", "PUBLIC IP", "PRIVATE IP", "LAUNCH TIME"}
 
-const stateColumn = 5
+const stateColumn = 2
 
 // Table renders the aggregated instances table.
 type Table struct {
 	view      *tview.Table
 	instances []awsclient.Instance // currently displayed rows, in row order
+
+	// onSelect is invoked whenever the selected row changes (interactively
+	// or via SetInstances), with nil when there is no selectable row.
+	onSelect func(inst *awsclient.Instance)
 }
 
 func newTable() *Table {
@@ -24,9 +29,34 @@ func newTable() *Table {
 		SetSelectable(true, false).
 		SetFixed(1, 0).
 		SetBorders(false)
+	view.SetBorder(true).
+		SetBorderPadding(0, 0, 1, 1).
+		SetTitle(fmt.Sprintf(tableTitleFmt, "Instances", "all accounts", 0))
+	view.SetSelectedStyle(tcell.StyleDefault.Background(tcell.ColorTeal).Foreground(tcell.ColorBlack))
+
 	t := &Table{view: view}
 	t.drawHeader()
+
+	view.SetSelectionChangedFunc(func(row, column int) {
+		if t.onSelect == nil {
+			return
+		}
+		inst, ok := t.SelectedInstance()
+		if !ok {
+			t.onSelect(nil)
+			return
+		}
+		t.onSelect(&inst)
+	})
+
 	return t
+}
+
+// SetOnSelect registers fn to be called whenever the selected instance
+// changes. It is not called for the table built by newTable until the first
+// SetInstances call.
+func (t *Table) SetOnSelect(fn func(inst *awsclient.Instance)) {
+	t.onSelect = fn
 }
 
 func (t *Table) drawHeader() {
@@ -39,26 +69,45 @@ func (t *Table) drawHeader() {
 	}
 }
 
-// SetInstances replaces the displayed rows, sorted by name.
-func (t *Table) SetInstances(instances []awsclient.Instance) {
+// SetInstances replaces the displayed rows, sorted by name, and updates the
+// table title to reflect scope and count. It preserves the current row
+// selection when possible, and always notifies onSelect so dependent views
+// (e.g. the info panel) stay in sync.
+func (t *Table) SetInstances(instances []awsclient.Instance, scope string) {
 	sorted := make([]awsclient.Instance, len(instances))
 	copy(sorted, instances)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Name < sorted[j].Name })
 
+	prevRow, _ := t.view.GetSelection()
+
 	t.instances = sorted
 	t.view.Clear()
 	t.drawHeader()
+	t.view.SetTitle(fmt.Sprintf(tableTitleFmt, "Instances", scope, len(sorted)))
 
 	if len(sorted) == 0 {
 		cell := tview.NewTableCell("No instances found").
 			SetSelectable(false).
 			SetAlign(tview.AlignCenter)
 		t.view.SetCell(1, 0, cell)
+		if t.onSelect != nil {
+			t.onSelect(nil)
+		}
 		return
 	}
 
 	for i, inst := range sorted {
 		t.setRow(i+1, inst)
+	}
+
+	row := prevRow
+	if row < 1 || row > len(sorted) {
+		row = 1
+	}
+	t.view.Select(row, 0)
+	if t.onSelect != nil {
+		selected := sorted[row-1]
+		t.onSelect(&selected)
 	}
 }
 
@@ -71,12 +120,15 @@ func (t *Table) setRow(row int, inst awsclient.Instance) {
 	values := []string{
 		inst.Name,
 		inst.ID,
+		inst.State,
+		inst.Type,
 		inst.AccountName,
 		inst.Region,
-		inst.Type,
-		inst.State,
-		inst.PublicIP,
-		inst.PrivateIP,
+		orDash(inst.AvailabilityZone),
+		orDash(inst.VPCId),
+		orDash(inst.SubnetId),
+		orDash(inst.PublicIP),
+		orDash(inst.PrivateIP),
 		launch,
 	}
 
