@@ -47,7 +47,7 @@ func Run(ctx context.Context, configPath, version string) error {
 			go runAction(ctx, uiApp, inst, "terminate", awsclient.TerminateInstance, refresh)
 		},
 	}, version)
-	uiApp.SetTotalsAsync(len(cfg.Accounts), regionCount)
+	uiApp.SetTotals(len(cfg.Accounts), regionCount)
 	refresh()
 
 	return uiApp.Run()

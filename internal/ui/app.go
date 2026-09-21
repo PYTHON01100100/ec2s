@@ -111,16 +111,17 @@ func (a *App) SetInstancesAsync(instances []awsclient.Instance, warnings []strin
 	})
 }
 
-// SetTotalsAsync sets the known account/region counts before the first
-// fetch completes, so the footer can show "N accounts · M regions ·
-// loading instances…" instead of reading as zero accounts configured. Safe
-// to call from any goroutine.
-func (a *App) SetTotalsAsync(totalAccounts, totalRegions int) {
-	a.tapp.QueueUpdateDraw(func() {
-		a.totalAccounts = totalAccounts
-		a.totalRegions = totalRegions
-		a.refreshFooter()
-	})
+// SetTotals sets the known account/region counts before the first fetch
+// completes, so the footer can show "N accounts · M regions · loading
+// instances…" instead of reading as zero accounts configured. It must be
+// called before Run(), from the same goroutine that will call Run() —
+// unlike the other Set*/Notify methods, it does NOT go through
+// QueueUpdateDraw, because that channel is only drained once Run()'s event
+// loop is active; calling it beforehand deadlocks the whole program.
+func (a *App) SetTotals(totalAccounts, totalRegions int) {
+	a.totalAccounts = totalAccounts
+	a.totalRegions = totalRegions
+	a.refreshFooter()
 }
 
 // Notify shows a transient action message (e.g. the result of a stop/
