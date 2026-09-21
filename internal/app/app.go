@@ -37,6 +37,9 @@ func Run(ctx context.Context, configPath, version string) error {
 
 	uiApp = ui.New(accountNames, ui.Actions{
 		Refresh: refresh,
+		Start: func(inst awsclient.Instance) {
+			go runAction(ctx, uiApp, inst, "start", awsclient.StartInstance, refresh)
+		},
 		Stop: func(inst awsclient.Instance) {
 			go runAction(ctx, uiApp, inst, "stop", awsclient.StopInstance, refresh)
 		},
@@ -54,6 +57,7 @@ func Run(ctx context.Context, configPath, version string) error {
 // messages to its past tense, since "stop"/"terminate" don't share a
 // suffix rule ("stopped" vs "terminated").
 var actionPastTense = map[string]string{
+	"start":     "started",
 	"stop":      "stopped",
 	"terminate": "terminated",
 }

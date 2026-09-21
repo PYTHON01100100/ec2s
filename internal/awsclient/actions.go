@@ -9,6 +9,22 @@ import (
 	"github.com/PYTHON01100100/ec2s/internal/config"
 )
 
+// StartInstance requests a start of instanceID in env. It builds a client
+// for that specific account/region using the same credential chain as
+// discovery.
+func StartInstance(ctx context.Context, env config.Environment, instanceID string) error {
+	client, err := NewClient(ctx, env)
+	if err != nil {
+		return err
+	}
+	if _, err := client.StartInstances(ctx, &ec2.StartInstancesInput{
+		InstanceIds: []string{instanceID},
+	}); err != nil {
+		return fmt.Errorf("start %s: %w", instanceID, err)
+	}
+	return nil
+}
+
 // StopInstance requests a graceful stop of instanceID in env. It builds a
 // client for that specific account/region using the same credential chain
 // as discovery.

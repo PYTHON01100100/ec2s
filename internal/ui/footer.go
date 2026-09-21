@@ -7,7 +7,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const keyHints = "/ filter   ctrl-a accounts   ctrl-r refresh   s stop   D terminate   ? help   q quit"
+const keyHints = "/ filter   ctrl-a accounts   ctrl-r refresh   s start   S stop   D terminate   ? help   q quit"
 
 // Footer renders the status bar as a row of e1s-style colored chips (scope,
 // active filter, key hints, totals, app version), plus a second line for

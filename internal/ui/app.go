@@ -51,11 +51,11 @@ type App struct {
 
 // Actions are the operations the UI triggers in response to user input; the
 // caller supplies these so the ui package stays free of AWS SDK calls.
-// Refresh, Stop, and Terminate must not block — implementations are
-// expected to launch their own goroutine and report results back via
-// SetInstancesAsync / Notify.
+// None of these may block — implementations are expected to launch their
+// own goroutine and report results back via SetInstancesAsync / Notify.
 type Actions struct {
 	Refresh   func()
+	Start     func(inst awsclient.Instance)
 	Stop      func(inst awsclient.Instance)
 	Terminate func(inst awsclient.Instance)
 }
@@ -164,16 +164,28 @@ func (a *App) refreshFooter() {
 }
 
 func (a *App) handleKey(event *tcell.EventKey) *tcell.EventKey {
-	// Overlay pages (filter/accounts/help) handle their own keys; only
-	// intercept global keys while the main page is on top.
-	if name, _ := a.pages.GetFrontPage(); name != pageMain {
+	front, _ := a.pages.GetFrontPage()
+
+	// Ctrl-C always quits, everywhere, even while typing in the filter box —
+	// the standard terminal "abort" convention. Plain q quits from any page
+	// too, EXCEPT the filter box, where q is a normal character to search
+	// for (e.g. filtering for "web-01" would be impossible otherwise).
+	if event.Key() == tcell.KeyCtrlC {
+		a.tapp.Stop()
+		return nil
+	}
+	if event.Rune() == 'q' && front != pageFilter {
+		a.tapp.Stop()
+		return nil
+	}
+
+	// The remaining shortcuts only make sense on the main page; overlays
+	// (filter/accounts/help/confirm) handle their own keys otherwise.
+	if front != pageMain {
 		return event
 	}
 
 	switch event.Key() {
-	case tcell.KeyCtrlC:
-		a.tapp.Stop()
-		return nil
 	case tcell.KeyCtrlR:
 		if a.actions.Refresh != nil {
 			a.actions.Refresh()
@@ -193,9 +205,6 @@ func (a *App) handleKey(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch event.Rune() {
-	case 'q':
-		a.tapp.Stop()
-		return nil
 	case '/':
 		a.showFilter()
 		return nil
@@ -209,6 +218,9 @@ func (a *App) handleKey(event *tcell.EventKey) *tcell.EventKey {
 		a.table.SelectBottom()
 		return nil
 	case 's':
+		a.doStart()
+		return nil
+	case 'S':
 		a.confirmStop()
 		return nil
 	case 'D':
@@ -217,6 +229,17 @@ func (a *App) handleKey(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+// doStart starts the selected instance immediately, with no confirmation —
+// unlike stop/terminate, starting an instance doesn't interrupt anything or
+// lose data, so asking "are you sure?" would just be friction.
+func (a *App) doStart() {
+	inst, ok := a.table.SelectedInstance()
+	if !ok || a.actions.Start == nil {
+		return
+	}
+	a.actions.Start(inst)
 }
 
 func (a *App) confirmStop() {

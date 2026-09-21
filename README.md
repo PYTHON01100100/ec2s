@@ -57,7 +57,8 @@ through `$AWS_REGION` → `$AWS_DEFAULT_REGION` → that profile's `region`
 setting in `~/.aws/config` → `us-east-1`.
 
 Each profile's IAM identity needs `ec2:DescribeInstances` to list instances,
-and, if you use `s`/`D`, `ec2:StopInstances` / `ec2:TerminateInstances` too.
+and, if you use `s`/`S`/`D`, `ec2:StartInstances` / `ec2:StopInstances` /
+`ec2:TerminateInstances` too.
 
 A bad or expired profile (e.g. an expired SSO session) doesn't stop the
 rest of your accounts from loading — it shows up as a warning in the
@@ -106,14 +107,21 @@ ec2s --config my.yaml     # explicit config file
 | `Esc`               | clear filter / close overlay             |
 | `Ctrl-A`            | filter by configured account             |
 | `Ctrl-R`            | refresh (re-fetch all accounts/regions)  |
-| `s`                 | stop the selected instance (asks to confirm) |
+| `s`                 | start the selected instance              |
+| `S`                 | stop the selected instance (asks to confirm) |
 | `D`                 | terminate the selected instance (asks to confirm, irreversible) |
 | `?`                 | help                                     |
 | `q` / `Ctrl-C`      | quit                                     |
 
-`s` and `D` act on whichever instance is currently selected, in its own
-account/region — both ask for confirmation first (`D` warns that
-termination can't be undone), and the footer shows the result.
+`s`/`S`/`D` act on whichever instance is currently selected, in its own
+account/region, and the footer shows the result. `s` (start) runs
+immediately since it's non-destructive; `S` (stop) and `D` (terminate) ask
+for confirmation first — `D` warns that termination can't be undone.
+
+`q` quits from anywhere in the app — the main table, the account/help
+screens, an open confirmation — except while typing into the filter box,
+where `q` is just a character to search for. `Ctrl-C` always quits,
+including from the filter box.
 
 Filter syntax supports `state:running`, `account:prod`, `region:us-east-1`,
 `type:t3.micro`, `os:windows`, `zone:us-east-1a`, `vpc:vpc-…`,
