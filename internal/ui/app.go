@@ -13,11 +13,13 @@ import (
 )
 
 const (
-	pageMain     = "main"
-	pageFilter   = "filter"
-	pageAccounts = "accounts"
-	pageHelp     = "help"
-	pageConfirm  = "confirm"
+	pageMain          = "main"
+	pageFilter        = "filter"
+	pageAccounts      = "accounts"
+	pageHelp          = "help"
+	pageConfirm       = "confirm"
+	pageCommand       = "command"
+	pageCommandResult = "command-result"
 )
 
 const noticeDuration = 4 * time.Second
@@ -46,6 +48,8 @@ type App struct {
 	totalRegions  int
 	loaded        bool // false until the first fetch completes
 
+	commandResult *tview.TextView // the output pane for the most recent E command, if any
+
 	actions Actions
 }
 
@@ -54,10 +58,11 @@ type App struct {
 // None of these may block — implementations are expected to launch their
 // own goroutine and report results back via SetInstancesAsync / Notify.
 type Actions struct {
-	Refresh   func()
-	Start     func(inst awsclient.Instance)
-	Stop      func(inst awsclient.Instance)
-	Terminate func(inst awsclient.Instance)
+	Refresh    func()
+	Start      func(inst awsclient.Instance)
+	Stop       func(inst awsclient.Instance)
+	Terminate  func(inst awsclient.Instance)
+	RunCommand func(inst awsclient.Instance, command string)
 }
 
 // New builds the ec2s UI shell. accountNames are the configured account
@@ -227,6 +232,9 @@ func (a *App) handleKey(event *tcell.EventKey) *tcell.EventKey {
 	case 'D':
 		a.confirmTerminate()
 		return nil
+	case 'E':
+		a.showCommandInput()
+		return nil
 	}
 
 	return event
@@ -259,6 +267,72 @@ func (a *App) confirmTerminate() {
 	}
 	text := fmt.Sprintf("Terminate %s\n(%s)?\nThis cannot be undone.", inst.Name, inst.ID)
 	a.showConfirm(text, func() { a.actions.Terminate(inst) })
+}
+
+func (a *App) showCommandInput() {
+	inst, ok := a.table.SelectedInstance()
+	if !ok || a.actions.RunCommand == nil {
+		return
+	}
+
+	input := newCommandInput(inst.Name,
+		func(command string) {
+			a.pages.RemovePage(pageCommand)
+			a.showCommandRunning(inst, command)
+			a.actions.RunCommand(inst, command)
+		},
+		func() {
+			a.pages.RemovePage(pageCommand)
+			a.tapp.SetFocus(a.table.view)
+		},
+	)
+	input.SetBorder(true).SetTitle(" Run command (no SSH) ")
+
+	a.pages.AddPage(pageCommand, centered(input, 90, 3), true, true)
+	a.tapp.SetFocus(input)
+}
+
+// showCommandRunning opens the output pane with a "running" placeholder;
+// SetCommandResultAsync fills in the real output once the command finishes.
+func (a *App) showCommandRunning(inst awsclient.Instance, command string) {
+	view := newCommandResultView()
+	view.SetText(fmt.Sprintf("Running %q on %s…", command, inst.Name))
+	view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			a.pages.RemovePage(pageCommandResult)
+			a.tapp.SetFocus(a.table.view)
+			return nil
+		}
+		return event
+	})
+
+	a.commandResult = view
+	a.pages.AddPage(pageCommandResult, centered(view, 100, 30), true, true)
+	a.tapp.SetFocus(view)
+}
+
+// SetCommandResultAsync fills in the output pane opened by showCommandRunning
+// once the command has finished (or failed to run at all). Safe to call from
+// any goroutine.
+func (a *App) SetCommandResultAsync(inst awsclient.Instance, command, status, stdout, stderr string) {
+	a.tapp.QueueUpdateDraw(func() {
+		if a.commandResult == nil {
+			return
+		}
+		a.commandResult.SetText(commandResultText(inst.Name, command, status, stdout, stderr))
+	})
+}
+
+// SetCommandErrorAsync fills in the output pane with a failure that
+// prevented the command from running at all (e.g. SSM agent not reachable).
+// Safe to call from any goroutine.
+func (a *App) SetCommandErrorAsync(inst awsclient.Instance, command string, err error) {
+	a.tapp.QueueUpdateDraw(func() {
+		if a.commandResult == nil {
+			return
+		}
+		a.commandResult.SetText(commandResultText(inst.Name, command, "Failed to run", "", err.Error()))
+	})
 }
 
 func (a *App) showConfirm(text string, onYes func()) {

@@ -51,6 +51,17 @@ func Run(ctx context.Context, configPath, version string) error {
 		Terminate: func(inst awsclient.Instance) {
 			go runAction(ctx, uiApp, inst, "terminate", awsclient.TerminateInstance, refresh)
 		},
+		RunCommand: func(inst awsclient.Instance, command string) {
+			go func() {
+				env := config.Environment{AccountName: inst.AccountName, Profile: inst.Profile, Region: inst.Region}
+				result, err := awsclient.RunCommand(ctx, env, inst.ID, inst.Platform, command)
+				if err != nil {
+					uiApp.SetCommandErrorAsync(inst, command, err)
+					return
+				}
+				uiApp.SetCommandResultAsync(inst, command, result.Status, result.Stdout, result.Stderr)
+			}()
+		},
 	}, version)
 	uiApp.SetTotals(len(cfg.Accounts), regionCount)
 	refresh()

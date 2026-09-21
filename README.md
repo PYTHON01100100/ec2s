@@ -84,7 +84,11 @@ setting in `~/.aws/config` → `us-east-1`.
 
 Each profile's IAM identity needs `ec2:DescribeInstances` to list instances,
 and, if you use `s`/`S`/`D`, `ec2:StartInstances` / `ec2:StopInstances` /
-`ec2:TerminateInstances` too.
+`ec2:TerminateInstances` too. `E` (run a command, see below) needs
+`ssm:SendCommand` and `ssm:GetCommandInvocation` on the identity side, and
+on the *instance* side, the SSM agent running plus an instance profile
+granting it SSM access — the exact same prerequisites as the AWS Console's
+own "Connect" button.
 
 A bad or expired profile (e.g. an expired SSO session) doesn't stop the
 rest of your accounts from loading — it shows up as a warning in the
@@ -136,6 +140,7 @@ ec2s --config my.yaml     # explicit config file
 | `s`                 | start the selected instance              |
 | `S`                 | stop the selected instance (asks to confirm) |
 | `D`                 | terminate the selected instance (asks to confirm, irreversible) |
+| `E`                 | run a shell command on the selected instance, **no SSH** |
 | `?`                 | help                                     |
 | `q` / `Ctrl-C`      | quit                                     |
 
@@ -146,6 +151,21 @@ ec2s --config my.yaml     # explicit config file
 account/region, and the footer shows the result. `s` (start) runs
 immediately since it's non-destructive; `S` (stop) and `D` (terminate) ask
 for confirmation first — `D` warns that termination can't be undone.
+
+### Running commands without SSH
+
+`E` opens a one-line prompt, and whatever you type runs on the selected
+instance via [SSM Run Command](https://docs.aws.amazon.com/systems-manager/latest/userguide/execute-remote-commands.html)
+— no SSH keys, no open port 22, nothing beyond IAM and the SSM agent
+already required for the AWS Console's own "Connect" button. `ec2s` sends
+the command, waits for it to finish, and shows stdout/stderr in a
+scrollable pane (`Esc` to close). Windows instances (detected from the
+instance's OS field) run the command via PowerShell instead of a shell
+script automatically.
+
+This is request/response, not an interactive shell: each `E` runs one
+command and waits for it to complete, closer to `aws ssm send-command`
+than to `ssh` or `aws ssm start-session`.
 
 `q` quits from anywhere in the app — the main table, the account/help
 screens, an open confirmation — except while typing into the filter box,

@@ -18,6 +18,7 @@ var headerKeys = []struct{ key, description string }{
 	{"s", "Start instance"},
 	{"S", "Stop instance"},
 	{"D", "Terminate instance"},
+	{"E", "Run command (no SSH)"},
 	{"?", "Help"},
 	{"q", "Quit"},
 }

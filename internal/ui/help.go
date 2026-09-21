@@ -21,6 +21,10 @@ const helpText = `[::b]ec2s keybindings[-:-:-]
   s              start the selected instance
   S              stop the selected instance (asks to confirm)
   D              terminate the selected instance (asks to confirm, irreversible)
+  E              run a shell command on the selected instance, no SSH
+                 (via SSM Run Command; needs the SSM agent + an instance
+                 profile with SSM access, same as the AWS Console's own
+                 "Connect" button)
 
 [::b]General[-:-:-]
   Ctrl-R         refresh now (re-fetch all accounts/regions)
