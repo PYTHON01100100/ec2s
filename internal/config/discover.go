@@ -2,6 +2,7 @@ package config
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -163,4 +164,38 @@ func awsCredentialsPath() string {
 		return ""
 	}
 	return filepath.Join(home, ".aws", "credentials")
+}
+
+// DebugContext summarizes exactly where ec2s is looking for AWS config and
+// credentials: the resolved home directory and the config/credentials file
+// paths, and whether each actually exists. This is the single most useful
+// piece of information when the AWS SDK picks up unexpected (or no)
+// credentials — most often because the running binary's OS-resolved home
+// directory isn't where the user actually ran `aws configure` (for example,
+// a Windows-built binary reads %USERPROFILE%\.aws, which is a different
+// filesystem location from a WSL/Linux shell's own $HOME/.aws, even when
+// the binary is launched from within that WSL shell).
+func DebugContext() string {
+	home, _ := os.UserHomeDir()
+	cfgPath := awsConfigPath()
+	credPath := awsCredentialsPath()
+	return fmt.Sprintf("home=%s config=%s(%s) credentials=%s(%s)",
+		orUnset(home), orUnset(cfgPath), existsLabel(cfgPath), orUnset(credPath), existsLabel(credPath))
+}
+
+func existsLabel(path string) string {
+	if path == "" {
+		return "unset"
+	}
+	if _, err := os.Stat(path); err != nil {
+		return "missing"
+	}
+	return "found"
+}
+
+func orUnset(s string) string {
+	if s == "" {
+		return "?"
+	}
+	return s
 }

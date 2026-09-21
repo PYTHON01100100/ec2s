@@ -81,5 +81,14 @@ func flatten(results []awsclient.Result) ([]awsclient.Instance, []string) {
 		instances = append(instances, r.Instances...)
 	}
 
+	// A failure almost always means the running binary resolved AWS config
+	// from somewhere other than where the user actually ran `aws configure`
+	// (classic on WSL: a Windows-built binary reads %USERPROFILE%\.aws, a
+	// separate filesystem from a WSL shell's own $HOME/.aws). Surface
+	// exactly where ec2s looked so this is self-diagnosable from the UI.
+	if len(warnings) > 0 {
+		warnings = append(warnings, config.DebugContext())
+	}
+
 	return instances, warnings
 }

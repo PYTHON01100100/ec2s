@@ -58,7 +58,33 @@ setting in `~/.aws/config` → `us-east-1`.
 
 A bad or expired profile (e.g. an expired SSO session) doesn't stop the
 rest of your accounts from loading — it shows up as a warning in the
-footer instead.
+footer instead, along with exactly where `ec2s` looked for AWS config
+(resolved home directory, and whether `config`/`credentials` were found
+there) so a bad credential lookup is self-diagnosable from the UI.
+
+### Troubleshooting: "it's not reading my keys"
+
+`ec2s` resolves `~/.aws/config` and `~/.aws/credentials` using the *running
+binary's* OS-native home directory — this matters if you use WSL. A
+Windows-built `ec2s.exe` reads `%USERPROFILE%\.aws` even when launched from
+inside a WSL/Linux shell, which is a completely separate filesystem from
+that shell's own `$HOME/.aws`. If you ran `aws configure` inside WSL but
+you're running a Windows binary (or vice versa), `ec2s` will pick up
+whatever profile happens to exist at *that OS's* home directory — which may
+be missing, empty, or stale, and AWS will reject the request (commonly as
+an HTTP 403).
+
+Fixes, in order of preference:
+
+- Run a binary built for the same OS as the shell you're using (`go build`
+  inside WSL for a WSL shell, on Windows for PowerShell/cmd).
+- Or point `ec2s` explicitly at the right files with `$AWS_CONFIG_FILE` /
+  `$AWS_SHARED_CREDENTIALS_FILE` (these are honored automatically — no
+  `ec2s`-specific flag needed).
+- Or check the footer's warning line, which prints the exact `home=`,
+  `config=`, and `credentials=` paths `ec2s` resolved and whether each file
+  was found, so you can confirm at a glance whether it's even looking in
+  the right place.
 
 ## Usage
 
