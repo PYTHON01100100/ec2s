@@ -15,11 +15,37 @@ tagged with the account and region it came from. The idea is borrowed
 from AWS CDK's `Environment{Account, Region}` concept — just applied to
 runtime resource discovery instead of infrastructure deployment.
 
-## Install
+## Getting started
 
-```sh
-go install github.com/PYTHON01100100/ec2s/cmd/ec2s@latest
-```
+1. **Install Go 1.23+** if you don't already have it ([go.dev/dl](https://go.dev/dl/)).
+2. **Install `ec2s`** — pick one:
+   ```sh
+   # a) straight from GitHub, no clone needed
+   go install github.com/PYTHON01100100/ec2s/cmd/ec2s@latest
+
+   # b) from source
+   git clone https://github.com/PYTHON01100100/ec2s.git
+   cd ec2s
+   go build -o ec2s ./cmd/ec2s
+   ```
+   Option (a) puts the `ec2s` binary in `$(go env GOPATH)/bin` — make sure
+   that's on your `$PATH`. Option (b) builds it into the current directory;
+   run it as `./ec2s` (or `.\ec2s.exe` on Windows).
+3. **Make sure AWS credentials exist** for at least one profile — run
+   `aws configure` or `aws configure sso` if you haven't already. `ec2s`
+   reads the exact same `~/.aws/config` / `~/.aws/credentials` files the AWS
+   CLI does; no separate setup needed.
+4. **(Optional) list multiple accounts/regions** to aggregate in one view —
+   copy [ec2s.example.yaml](ec2s.example.yaml) to `./ec2s.yaml` and edit it.
+   Skip this step entirely if you just want `ec2s` to auto-detect a single
+   profile (see **Zero config** below).
+5. **Run it:**
+   ```sh
+   ec2s
+   ```
+   You should see the instances table populate within a couple of seconds.
+   If a profile fails to load, the footer explains why — see
+   [Troubleshooting](#troubleshooting-its-not-reading-my-keys) below.
 
 ## Configuration
 
@@ -148,10 +174,11 @@ cloud/infra resources:
 
 ## Roadmap
 
-See [agenda.md](agenda.md) for the full phased roadmap. Implemented so
-far: project foundation (Phase 1) and AWS auth + concurrent multi-account
-discovery (Phase 2). Instance actions (start/stop/reboot/SSM), CloudWatch
-metrics, and distribution tooling are tracked as Phases 3-5.
+See [agenda.md](agenda.md) for the full phased roadmap. Implemented so far:
+project foundation (Phase 1), AWS auth + concurrent multi-account discovery
+(Phase 2), and start/stop/terminate instance actions (part of Phase 3).
+Reboot, SSM shell sessions, CloudWatch metrics, and distribution tooling
+are still tracked as Phases 3-5.
 
 ## License
 
