@@ -59,7 +59,7 @@ func Run(ctx context.Context, configPath, version string) error {
 					uiApp.SetCommandErrorAsync(inst, command, err)
 					return
 				}
-				uiApp.SetCommandResultAsync(inst, command, result.Status, result.Stdout, result.Stderr)
+				uiApp.SetCommandResultAsync(inst, command, result)
 			}()
 		},
 	}, version)

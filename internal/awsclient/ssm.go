@@ -21,9 +21,11 @@ const (
 // CommandResult is the outcome of running a shell command on an instance via
 // SSM Run Command.
 type CommandResult struct {
-	Status string
-	Stdout string
-	Stderr string
+	CommandID     string
+	Status        string
+	StatusDetails string // finer-grained than Status, e.g. why a Failed happened
+	Stdout        string
+	Stderr        string
 }
 
 // RunCommand runs command on instanceID via SSM Run Command and waits for it
@@ -94,9 +96,11 @@ func RunCommand(ctx context.Context, env config.Environment, instanceID, platfor
 			}
 		default:
 			return CommandResult{
-				Status: string(invocation.Status),
-				Stdout: strOrEmpty(invocation.StandardOutputContent),
-				Stderr: strOrEmpty(invocation.StandardErrorContent),
+				CommandID:     strOrEmpty(commandID),
+				Status:        string(invocation.Status),
+				StatusDetails: strOrEmpty(invocation.StatusDetails),
+				Stdout:        strOrEmpty(invocation.StandardOutputContent),
+				Stderr:        strOrEmpty(invocation.StandardErrorContent),
 			}, nil
 		}
 	}

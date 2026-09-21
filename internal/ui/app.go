@@ -312,14 +312,13 @@ func (a *App) showCommandRunning(inst awsclient.Instance, command string) {
 }
 
 // SetCommandResultAsync fills in the output pane opened by showCommandRunning
-// once the command has finished (or failed to run at all). Safe to call from
-// any goroutine.
-func (a *App) SetCommandResultAsync(inst awsclient.Instance, command, status, stdout, stderr string) {
+// once the command has finished. Safe to call from any goroutine.
+func (a *App) SetCommandResultAsync(inst awsclient.Instance, command string, result awsclient.CommandResult) {
 	a.tapp.QueueUpdateDraw(func() {
 		if a.commandResult == nil {
 			return
 		}
-		a.commandResult.SetText(commandResultText(inst.Name, command, status, stdout, stderr))
+		a.commandResult.SetText(commandResultText(inst.Name, command, result.CommandID, result.Status, result.StatusDetails, result.Stdout, result.Stderr))
 	})
 }
 
@@ -331,7 +330,7 @@ func (a *App) SetCommandErrorAsync(inst awsclient.Instance, command string, err 
 		if a.commandResult == nil {
 			return
 		}
-		a.commandResult.SetText(commandResultText(inst.Name, command, "Failed to run", "", err.Error()))
+		a.commandResult.SetText(commandResultText(inst.Name, command, "", "Failed to run", "", "", err.Error()))
 	})
 }
 

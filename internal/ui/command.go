@@ -32,9 +32,20 @@ func newCommandInput(instName string, onSubmit func(command string), onCancel fu
 // commandResultText formats a command's status and output for the result
 // view. Truncated stdout/stderr are the AWS SDK's own limits (8000 chars for
 // stderr, 24000 for stdout captured inline), not something ec2s imposes.
-func commandResultText(instName, command, status, stdout, stderr string) string {
-	text := fmt.Sprintf("[teal::b]%s[-:-:-] on [fuchsia::b]%s[-:-:-]\n[::b]Status:[-:-:-] %s\n",
+// commandID is shown so a failure can be looked up directly in the AWS
+// Console (Systems Manager > Run Command > Command history) or via
+// `aws ssm list-command-invocations --details` for more detail than
+// GetCommandInvocation returns when stdout/stderr come back empty.
+func commandResultText(instName, command, commandID, status, statusDetails, stdout, stderr string) string {
+	text := fmt.Sprintf("[teal::b]%s[-:-:-] on [fuchsia::b]%s[-:-:-]\n[::b]Status:[-:-:-] %s",
 		tview.Escape(command), tview.Escape(instName), status)
+	if statusDetails != "" && statusDetails != status {
+		text += fmt.Sprintf(" (%s)", statusDetails)
+	}
+	if commandID != "" {
+		text += fmt.Sprintf("\n[::b]Command ID:[-:-:-] %s", commandID)
+	}
+	text += "\n"
 
 	if stdout != "" {
 		text += "\n[green::b]stdout[-:-:-]\n" + tview.Escape(stdout)
