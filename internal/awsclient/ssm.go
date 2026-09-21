@@ -2,6 +2,7 @@ package awsclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -60,16 +61,20 @@ func RunCommand(ctx context.Context, env config.Environment, instanceID, platfor
 
 	// GetCommandInvocation can 404 (InvocationDoesNotExist) for a brief
 	// moment right after SendCommand, before SSM has created the
-	// invocation record — treat that as "still pending" and keep polling
-	// rather than surfacing it as a real failure.
+	// invocation record — that specific error means "still pending", so
+	// keep polling. Any OTHER error (AccessDenied, ValidationException,
+	// ...) is permanent and must be returned immediately: silently
+	// retrying it until the timeout would just mask the real cause behind
+	// a useless "timed out" message.
+	var notExist *ssmtypes.InvocationDoesNotExist
 	for {
 		invocation, err := client.GetCommandInvocation(ctx, &ssm.GetCommandInvocationInput{
 			CommandId:  commandID,
 			InstanceId: &instanceID,
 		})
 		if err != nil {
-			if ctx.Err() != nil {
-				return CommandResult{}, fmt.Errorf("timed out waiting for command output: %w", ctx.Err())
+			if !errors.As(err, &notExist) {
+				return CommandResult{}, fmt.Errorf("get command output: %w", err)
 			}
 			select {
 			case <-ctx.Done():
