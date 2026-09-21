@@ -10,9 +10,12 @@ import (
 	"github.com/PYTHON01100100/ec2s/internal/awsclient"
 )
 
-var tableColumns = []string{"NAME", "INSTANCE ID", "STATE", "TYPE", "OS", "ACCOUNT", "REGION", "ZONE", "VPC ID", "SUBNET ID", "PUBLIC IP", "PRIVATE IP", "LAUNCH TIME"}
+var tableColumns = []string{"NAME", "INSTANCE ID", "STATE", "SSM", "TYPE", "OS", "ACCOUNT", "REGION", "ZONE", "VPC ID", "SUBNET ID", "PUBLIC IP", "PRIVATE IP", "LAUNCH TIME"}
 
-const stateColumn = 2
+const (
+	stateColumn = 2
+	ssmColumn   = 3
+)
 
 // Table renders the aggregated instances table.
 type Table struct {
@@ -119,6 +122,7 @@ func (t *Table) setRow(row int, inst awsclient.Instance) {
 		inst.Name,
 		inst.ID,
 		inst.State,
+		orDash(inst.SSMStatus),
 		inst.Type,
 		orDash(inst.Platform),
 		inst.AccountName,
@@ -133,8 +137,11 @@ func (t *Table) setRow(row int, inst awsclient.Instance) {
 
 	for col, v := range values {
 		cell := tview.NewTableCell(v)
-		if col == stateColumn {
+		switch col {
+		case stateColumn:
 			cell.SetTextColor(stateColor(inst.State))
+		case ssmColumn:
+			cell.SetTextColor(ssmStatusColor(inst.SSMStatus))
 		}
 		t.view.SetCell(row, col, cell)
 	}

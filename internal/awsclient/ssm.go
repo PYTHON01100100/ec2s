@@ -16,7 +16,33 @@ import (
 const (
 	commandPollInterval = time.Second
 	commandTimeout      = 45 * time.Second
+
+	// SSMStatusNotManaged marks an instance with no SSM record at all,
+	// distinct from "" (couldn't check, e.g. missing IAM permission).
+	SSMStatusNotManaged = "not managed"
 )
+
+// pingStatuses returns instance ID -> SSM Agent PingStatus (e.g. "Online",
+// "ConnectionLost") for every instance client currently has an SSM record
+// for, in one region. Instances with no record at all (agent never
+// registered) simply won't appear in the returned map — callers should
+// treat a missing entry as SSMStatusNotManaged.
+func pingStatuses(ctx context.Context, client ssm.DescribeInstanceInformationAPIClient) (map[string]string, error) {
+	statuses := map[string]string{}
+
+	paginator := ssm.NewDescribeInstanceInformationPaginator(client, &ssm.DescribeInstanceInformationInput{})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("describe instance information: %w", err)
+		}
+		for _, info := range page.InstanceInformationList {
+			statuses[strOrEmpty(info.InstanceId)] = string(info.PingStatus)
+		}
+	}
+
+	return statuses, nil
+}
 
 // CommandResult is the outcome of running a shell command on an instance via
 // SSM Run Command.

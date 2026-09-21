@@ -29,7 +29,14 @@ type Instance struct {
 	LaunchTime       time.Time
 	VPCId            string
 	SubnetId         string
-	Tags             map[string]string
+	// SSMStatus is the instance's SSM Agent connectivity (e.g. "Online",
+	// "ConnectionLost", "not managed" if it has no SSM record at all, or ""
+	// if we couldn't check). It's what E (run command) actually depends
+	// on, and is fetched separately from — and best-effort relative to —
+	// the core EC2 describe, so a missing ssm:DescribeInstanceInformation
+	// permission degrades this field, not the whole instance listing.
+	SSMStatus string
+	Tags      map[string]string
 }
 
 // fromSDK maps an SDK EC2 instance into our Instance model, tagging it with

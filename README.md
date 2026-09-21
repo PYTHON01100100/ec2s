@@ -83,12 +83,16 @@ through `$AWS_REGION` → `$AWS_DEFAULT_REGION` → that profile's `region`
 setting in `~/.aws/config` → `us-east-1`.
 
 Each profile's IAM identity needs `ec2:DescribeInstances` to list instances,
-and, if you use `s`/`S`/`D`, `ec2:StartInstances` / `ec2:StopInstances` /
-`ec2:TerminateInstances` too. `E` (run a command, see below) needs
-`ssm:SendCommand` and `ssm:GetCommandInvocation` on the identity side, and
-on the *instance* side, the SSM agent running plus an instance profile
-granting it SSM access — the exact same prerequisites as the AWS Console's
-own "Connect" button.
+and `ssm:DescribeInstanceInformation` to show each instance's SSM
+connectivity (see **What it shows** below) — this second one is optional:
+without it, the SSM status column just shows `-` (unknown) instead of
+failing the whole listing. If you use `s`/`S`/`D`, add
+`ec2:StartInstances` / `ec2:StopInstances` / `ec2:TerminateInstances`. `E`
+(run a command, see below) needs `ssm:SendCommand` and
+`ssm:GetCommandInvocation` on the identity side, and on the *instance*
+side, the SSM agent running plus an instance profile granting it SSM
+access — the exact same prerequisites as the AWS Console's own "Connect"
+button.
 
 A bad or expired profile (e.g. an expired SSO session) doesn't stop the
 rest of your accounts from loading — it shows up as a warning in the
@@ -167,6 +171,11 @@ This is request/response, not an interactive shell: each `E` runs one
 command and waits for it to complete, closer to `aws ssm send-command`
 than to `ssh` or `aws ssm start-session`.
 
+Since `E` depends entirely on the instance's SSM Agent being reachable,
+`ec2s` shows that connectivity up front (see **What it shows** below)
+instead of only revealing it when a command fails — check the SSM column
+before troubleshooting a failed `E`.
+
 `q` quits from anywhere in the app — the main table, the account/help
 screens, an open confirmation — except while typing into the filter box,
 where `q` is just a character to search for. `Ctrl-C` always quits,
@@ -174,16 +183,25 @@ including from the filter box.
 
 Filter syntax supports `state:running`, `account:prod`, `region:us-east-1`,
 `type:t3.micro`, `os:windows`, `zone:us-east-1a`, `vpc:vpc-…`,
-`subnet:subnet-…`, or plain substring matching against instance name/ID.
+`subnet:subnet-…`, `ssm:online` / `ssm:connectionlost` / `ssm:not managed`,
+or plain substring matching against instance name/ID.
 
 ### What it shows
 
 The table and the info panel (top of the screen, updates as you move the
 selection) surface the fields that matter most when you're trying to find
-or reach a specific instance: **name**, instance ID, state, type, **OS**,
-**account** and **region**, **availability zone**, **VPC ID** and
-**subnet ID**, and both the **public (external)** and **private (internal)**
-IP addresses.
+or reach a specific instance: **name**, instance ID, state, **SSM status**,
+type, **OS**, **account** and **region**, **availability zone**, **VPC ID**
+and **subnet ID**, and both the **public (external)** and **private
+(internal)** IP addresses.
+
+**SSM status** is the instance's SSM Agent connectivity — `Online`,
+`ConnectionLost`, `Inactive`, or `not managed` (no SSM record at all,
+distinct from `-`, which means `ec2s` couldn't check because the caller
+identity lacks `ssm:DescribeInstanceInformation`). This is fetched
+alongside the EC2 listing but is entirely best-effort: a missing
+permission or SSM-side error only blanks this one column, it never breaks
+instance discovery itself.
 
 ## Inspiration
 

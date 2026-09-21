@@ -3,6 +3,8 @@ package ui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+
+	"github.com/PYTHON01100100/ec2s/internal/awsclient"
 )
 
 // Color palette, modeled on e1s/k9s: a fixed dark background so the UI reads
@@ -42,6 +44,22 @@ func stateColor(state string) tcell.Color {
 		return tcell.ColorRed
 	case "pending", "stopping", "shutting-down":
 		return tcell.ColorYellow
+	default:
+		return tcell.ColorWhite
+	}
+}
+
+// ssmStatusColor returns the display color for an instance's SSM Agent
+// connectivity — this is what E (run command) actually depends on, so it
+// gets the same color-coding treatment as EC2 lifecycle state.
+func ssmStatusColor(status string) tcell.Color {
+	switch status {
+	case "Online":
+		return tcell.ColorGreen
+	case "ConnectionLost", "Inactive":
+		return tcell.ColorRed
+	case awsclient.SSMStatusNotManaged:
+		return tcell.ColorGray
 	default:
 		return tcell.ColorWhite
 	}

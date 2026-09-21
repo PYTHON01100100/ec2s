@@ -19,3 +19,4 @@ ec2s.local.yaml
 
 # Third-party reference code kept locally for design inspiration, not part of this project
 /project ref from e1s/
+/amazon-ssm-agent-mainline/
