@@ -6,11 +6,16 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/PYTHON01100100/ec2s/internal/awsclient"
 	"github.com/PYTHON01100100/ec2s/internal/config"
 	"github.com/PYTHON01100100/ec2s/internal/ui"
 )
+
+// autoRefreshInterval is how often ec2s re-fetches all accounts/regions on
+// its own, on top of the manual Ctrl-R refresh.
+const autoRefreshInterval = 60 * time.Second
 
 // Run loads the ec2s configuration (or falls back to auto-discovery),
 // performs an initial concurrent discovery across every configured
@@ -49,8 +54,25 @@ func Run(ctx context.Context, configPath, version string) error {
 	}, version)
 	uiApp.SetTotals(len(cfg.Accounts), regionCount)
 	refresh()
+	go autoRefresh(ctx, refresh)
 
 	return uiApp.Run()
+}
+
+// autoRefresh re-fetches all accounts/regions every autoRefreshInterval,
+// until ctx is cancelled (on quit or a termination signal).
+func autoRefresh(ctx context.Context, refresh func()) {
+	ticker := time.NewTicker(autoRefreshInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			refresh()
+		}
+	}
 }
 
 // actionPastTense maps the imperative verb used in runAction's log/notify

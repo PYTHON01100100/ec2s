@@ -23,7 +23,8 @@ const helpText = `[::b]ec2s keybindings[-:-:-]
   D              terminate the selected instance (asks to confirm, irreversible)
 
 [::b]General[-:-:-]
-  Ctrl-R         refresh (re-fetch all accounts/regions)
+  Ctrl-R         refresh now (re-fetch all accounts/regions)
+                 (also auto-refreshes every 60s on its own)
   ?              toggle this help
   q / Ctrl-C     quit
 

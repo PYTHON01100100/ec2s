@@ -132,12 +132,15 @@ ec2s --config my.yaml     # explicit config file
 | `/`                 | filter (plain text, or `column:value`)   |
 | `Esc`               | clear filter / close overlay             |
 | `Ctrl-A`            | filter by configured account             |
-| `Ctrl-R`            | refresh (re-fetch all accounts/regions)  |
+| `Ctrl-R`            | refresh now (re-fetch all accounts/regions) |
 | `s`                 | start the selected instance              |
 | `S`                 | stop the selected instance (asks to confirm) |
 | `D`                 | terminate the selected instance (asks to confirm, irreversible) |
 | `?`                 | help                                     |
 | `q` / `Ctrl-C`      | quit                                     |
+
+`ec2s` also auto-refreshes every 60 seconds on its own, on top of manual
+`Ctrl-R`, so the table stays current without you having to ask.
 
 `s`/`S`/`D` act on whichever instance is currently selected, in its own
 account/region, and the footer shows the result. `s` (start) runs
