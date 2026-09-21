@@ -7,7 +7,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const keyHints = "/ filter   ctrl-a accounts   ctrl-r refresh   g/G top/bottom   ? help   q quit"
+const keyHints = "/ filter   ctrl-a accounts   ctrl-r refresh   s stop   D terminate   ? help   q quit"
 
 // Footer renders the status bar as a row of e1s-style colored chips (scope,
 // active filter, key hints, totals, app version), plus a second line for
@@ -51,8 +51,10 @@ func newFooter(version string) *Footer {
 // SetStatus rebuilds the chip row and warnings line from current state.
 // accountFilter is "" for "all accounts". totalInstances/totalAccounts/
 // totalRegions reflect the last full fetch (unfiltered); warnings lists
-// per-environment errors from that fetch, if any.
-func (f *Footer) SetStatus(textFilter, accountFilter string, totalAccounts, totalRegions, totalInstances, failedAccounts int, warnings []string) {
+// per-environment errors from that fetch, if any. loaded is false until the
+// first fetch has completed, so a pending fetch reads as "loading" rather
+// than indistinguishable from zero accounts/instances.
+func (f *Footer) SetStatus(textFilter, accountFilter string, totalAccounts, totalRegions, totalInstances, failedAccounts int, warnings []string, loaded bool) {
 	scope := accountFilter
 	if scope == "" {
 		scope = "all accounts"
@@ -70,9 +72,12 @@ func (f *Footer) SetStatus(textFilter, accountFilter string, totalAccounts, tota
 
 	f.chips.AddItem(f.hints, 0, 1, false)
 
-	countsLabel := fmt.Sprintf("%d accounts · %d regions · %d instances", totalAccounts, totalRegions, totalInstances)
-	if failedAccounts > 0 {
-		countsLabel += fmt.Sprintf(" · %d failed", failedAccounts)
+	countsLabel := fmt.Sprintf("%d accounts · %d regions · loading instances…", totalAccounts, totalRegions)
+	if loaded {
+		countsLabel = fmt.Sprintf("%d accounts · %d regions · %d instances", totalAccounts, totalRegions, totalInstances)
+		if failedAccounts > 0 {
+			countsLabel += fmt.Sprintf(" · %d failed", failedAccounts)
+		}
 	}
 	f.counts.SetText(fmt.Sprintf(footerChipFmt, countsLabel))
 	f.chips.AddItem(f.counts, len(countsLabel)+3, 0, false)
@@ -84,4 +89,12 @@ func (f *Footer) SetStatus(textFilter, accountFilter string, totalAccounts, tota
 	} else {
 		f.warnings.SetText("")
 	}
+}
+
+// SetNotice overrides the warnings line with a transient action message
+// (e.g. the result of a stop/terminate). The caller is responsible for
+// restoring the normal line afterwards, typically by calling SetStatus
+// again once the notice has been shown for a while.
+func (f *Footer) SetNotice(text string) {
+	f.warnings.SetText(text)
 }

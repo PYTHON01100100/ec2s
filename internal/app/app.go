@@ -35,10 +35,40 @@ func Run(ctx context.Context, configPath, version string) error {
 		}()
 	}
 
-	uiApp = ui.New(accountNames, refresh, version)
+	uiApp = ui.New(accountNames, ui.Actions{
+		Refresh: refresh,
+		Stop: func(inst awsclient.Instance) {
+			go runAction(ctx, uiApp, inst, "stop", awsclient.StopInstance, refresh)
+		},
+		Terminate: func(inst awsclient.Instance) {
+			go runAction(ctx, uiApp, inst, "terminate", awsclient.TerminateInstance, refresh)
+		},
+	}, version)
+	uiApp.SetTotalsAsync(len(cfg.Accounts), regionCount)
 	refresh()
 
 	return uiApp.Run()
+}
+
+// actionPastTense maps the imperative verb used in runAction's log/notify
+// messages to its past tense, since "stop"/"terminate" don't share a
+// suffix rule ("stopped" vs "terminated").
+var actionPastTense = map[string]string{
+	"stop":      "stopped",
+	"terminate": "terminated",
+}
+
+// runAction performs a single-instance action (stop/terminate) against its
+// own account/region, reports the result to the UI, and triggers a refresh
+// on success so the instance's updated state shows up promptly.
+func runAction(ctx context.Context, uiApp *ui.App, inst awsclient.Instance, verb string, do func(context.Context, config.Environment, string) error, refresh func()) {
+	env := config.Environment{AccountName: inst.AccountName, Profile: inst.Profile, Region: inst.Region}
+	if err := do(ctx, env, inst.ID); err != nil {
+		uiApp.Notify(fmt.Sprintf("failed to %s %s: %v", verb, inst.Name, err), true)
+		return
+	}
+	uiApp.Notify(fmt.Sprintf("%s %s", actionPastTense[verb], inst.Name), false)
+	refresh()
 }
 
 func accountNames(accounts []config.Account) []string {

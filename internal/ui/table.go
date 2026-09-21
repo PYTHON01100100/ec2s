@@ -36,6 +36,7 @@ func newTable() *Table {
 
 	t := &Table{view: view}
 	t.drawHeader()
+	t.showPlaceholder("Loading instances…")
 
 	view.SetSelectionChangedFunc(func(row, column int) {
 		if t.onSelect == nil {
@@ -86,10 +87,7 @@ func (t *Table) SetInstances(instances []awsclient.Instance, scope string) {
 	t.view.SetTitle(fmt.Sprintf(tableTitleFmt, "Instances", scope, len(sorted)))
 
 	if len(sorted) == 0 {
-		cell := tview.NewTableCell("No instances found").
-			SetSelectable(false).
-			SetAlign(tview.AlignCenter)
-		t.view.SetCell(1, 0, cell)
+		t.showPlaceholder("No instances found")
 		if t.onSelect != nil {
 			t.onSelect(nil)
 		}
@@ -140,6 +138,16 @@ func (t *Table) setRow(row int, inst awsclient.Instance) {
 		}
 		t.view.SetCell(row, col, cell)
 	}
+}
+
+// showPlaceholder renders a centered, non-selectable message in row 1,
+// used both for the initial "Loading instances…" state before the first
+// fetch completes and for the "No instances found" empty state after.
+func (t *Table) showPlaceholder(msg string) {
+	cell := tview.NewTableCell(msg).
+		SetSelectable(false).
+		SetAlign(tview.AlignCenter)
+	t.view.SetCell(1, 0, cell)
 }
 
 // SelectedInstance returns the instance under the current selection, if any.

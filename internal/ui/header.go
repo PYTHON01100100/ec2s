@@ -15,6 +15,8 @@ var headerKeys = []struct{ key, description string }{
 	{"ctrl-a", "Filter by account"},
 	{"ctrl-r", "Refresh"},
 	{"g / G", "Top / bottom"},
+	{"s", "Stop instance"},
+	{"D", "Terminate instance"},
 	{"?", "Help"},
 	{"q", "Quit"},
 }

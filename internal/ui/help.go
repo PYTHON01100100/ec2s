@@ -17,6 +17,10 @@ const helpText = `[::b]ec2s keybindings[-:-:-]
 [::b]Accounts[-:-:-]
   Ctrl-A         filter by configured account ("All accounts" to reset)
 
+[::b]Actions[-:-:-]
+  s              stop the selected instance (asks to confirm)
+  D              terminate the selected instance (asks to confirm, irreversible)
+
 [::b]General[-:-:-]
   Ctrl-R         refresh (re-fetch all accounts/regions)
   ?              toggle this help
